@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:linetheories/core/utils/role_navigator.dart';
 import 'dart:async';
-import 'package:linetheories/routes/app_routes.dart'; // import your AppRoutes
+import 'package:linetheories/routes/app_routes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,7 +25,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Logo animation (from top)
     _logoController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200));
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
     _logoOffsetAnimation =
         Tween<Offset>(begin: const Offset(0, -2), end: Offset.zero).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
@@ -31,7 +35,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Name animation (from left)
     _nameController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200));
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
     _nameOffsetAnimation =
         Tween<Offset>(begin: const Offset(-2, 0), end: Offset.zero).animate(
       CurvedAnimation(parent: _nameController, curve: Curves.easeOutBack),
@@ -47,12 +53,15 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  void _navigateNext() {
-    bool isLoggedIn = false; // Replace with actual auth check logic
+  void _navigateNext() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? userRole = prefs.getString("role");
 
-    if (isLoggedIn) {
-      Navigator.pushReplacementNamed(context, AppRoutes.adminDashboard);
+    if (userRole != null && userRole.isNotEmpty) {
+      // Role found, navigate to corresponding dashboard
+      RoleNavigator.navigateToDashboard(context, userRole);
     } else {
+      // No role saved, go to login
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }

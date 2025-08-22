@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:linetheories/ui/screens/dashboards/admin_dashboard.dart';
+import 'package:linetheories/ui/screens/dashboards/dashboard_base.dart';
 import 'package:linetheories/ui/widgets/bottom_nav_bar.dart';
 import '../../../core/constants/app_colors.dart';
 

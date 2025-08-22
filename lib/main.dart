@@ -5,7 +5,7 @@ import 'routes/app_routes.dart';
 void main() {
   runApp(MyApp());
 }
- 
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           initialRoute: AppRoutes.splash,
-          routes: AppRoutes.getRoutes(),
+          onGenerateRoute: AppRoutes.generateRoute,
         );
       },
     );

@@ -1,15 +1,16 @@
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:linetheories/models/project.dart';
+import 'package:linetheories/ui/screens/editproject_screen.dart';
+import 'dart:io';
 
 class ProjectDetailsScreen extends StatefulWidget {
-  final Map<String, dynamic> project;
-  final Function(Map<String, dynamic>) onProjectUpdate;
+  final Project project;
+  final void Function(Project)? onProjectUpdate; // Made nullable
 
   const ProjectDetailsScreen({
     Key? key,
     required this.project,
-    required this.onProjectUpdate,
+    this.onProjectUpdate, // Changed to optional
   }) : super(key: key);
 
   @override
@@ -17,106 +18,86 @@ class ProjectDetailsScreen extends StatefulWidget {
 }
 
 class _ProjectDetailsScreenState extends State<ProjectDetailsScreen> {
-  File? floorPlan;
-  File? moodBoard;
-  File? quote;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Project Details")),
+      appBar: AppBar(
+        title: const Text("Project Details"),
+        actions: [
+          if (widget.onProjectUpdate != null) // Show edit button only if editable
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: _editProject,
+            ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            Text(
-              "Customer: ${widget.project['customer_name'] ?? ''}",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-
-            _buildFileUploadTile(
-              title: "Upload Floor Plan",
-              file: floorPlan,
-              onPick: () => _pickFile("floorPlan"),
-            ),
-            _buildFileUploadTile(
-              title: "Upload Mood Board",
-              file: moodBoard,
-              onPick: () => _pickFile("moodBoard"),
-            ),
-            _buildFileUploadTile(
-              title: "Upload Quote",
-              file: quote,
-              onPick: () => _pickFile("quote"),
-            ),
-
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _onSaveConfirm,
-              child: const Text("Save & Confirm"),
-            ),
+            Text("Customer: ${widget.project.customerName}"),
+            Text("Phone: ${widget.project.phoneNumber}"),
+            Text("Email: ${widget.project.email}"),
+            Text("Address: ${widget.project.address}"),
+            Text("GPS Location: ${widget.project.gpsLocation}"),
+            Text("Size: ${widget.project.size}"),
+            Text("Remarks: ${widget.project.remarks}"),
+            Text("Stage: ${widget.project.stage}"),
+            if (widget.project.attachmentPath != null)
+              ListTile(
+                title: const Text("Attachment"),
+                subtitle: Text(widget.project.attachmentPath!.split('/').last),
+                trailing: _buildAttachmentIcon(),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFileUploadTile({
-    required String title,
-    File? file,
-    required VoidCallback onPick,
-  }) {
-    return Card(
-      child: ListTile(
-        title: Text(title),
-        subtitle: file != null
-            ? Text("Selected: ${file.path.split('/').last}")
-            : const Text("No file selected"),
-        trailing: IconButton(
-          icon: const Icon(Icons.upload_file),
-          onPressed: onPick,
+  Widget _buildAttachmentIcon() {
+    try {
+      final file = File(widget.project.attachmentPath!);
+      if (file.existsSync()) {
+        final extension = widget.project.attachmentPath!.toLowerCase().split('.').last;
+        if (['jpg', 'jpeg', 'png'].contains(extension)) {
+          return const Icon(Icons.image);
+        } else if (extension == 'pdf') {
+          return const Icon(Icons.picture_as_pdf);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading attachment icon: $e');
+    }
+    return const Icon(Icons.attach_file);
+  }
+
+  Future<void> _editProject() async {
+    if (widget.onProjectUpdate == null) return; // Prevent editing if null
+
+    final updatedProject = await Navigator.push<Project>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditProjectScreen(
+          project: widget.project,
+          onSave: (edited) => Navigator.pop(context, edited),
         ),
       ),
     );
-  }
 
-  Future<void> _pickFile(String type) async {
-    final result = await FilePicker.platform.pickFiles(
-      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      type: FileType.custom,
-    );
-
-    if (result != null && result.files.single.path != null) {
+    if (updatedProject != null) {
       setState(() {
-        final file = File(result.files.single.path!);
-        if (type == "floorPlan") {
-          floorPlan = file;
-        } else if (type == "moodBoard") {
-          moodBoard = file;
-        } else if (type == "quote") {
-          quote = file;
-        }
+        widget.project.customerName = updatedProject.customerName;
+        widget.project.phoneNumber = updatedProject.phoneNumber;
+        widget.project.email = updatedProject.email;
+        widget.project.address = updatedProject.address;
+        widget.project.gpsLocation = updatedProject.gpsLocation;
+        widget.project.size = updatedProject.size;
+        widget.project.remarks = updatedProject.remarks;
+        widget.project.stage = updatedProject.stage;
+        widget.project.attachmentPath = updatedProject.attachmentPath;
       });
-
-      _checkForFirstUpload();
+      widget.onProjectUpdate!(updatedProject); // Safe to call since checked for null
     }
-  }
-
-  void _checkForFirstUpload() {
-    final currentStage = widget.project['stage'];
-    if (currentStage == 'Pitch Start' &&
-        (floorPlan != null || moodBoard != null || quote != null)) {
-      widget.project['stage'] = 'Pitch In Progress';
-      widget.onProjectUpdate(widget.project);
-    }
-  }
-
-  void _onSaveConfirm() {
-    if (floorPlan != null && moodBoard != null && quote != null) {
-      widget.project['stage'] = 'DIP Start';
-      widget.onProjectUpdate(widget.project);
-    }
-    Navigator.pop(context, widget.project);
   }
 }
